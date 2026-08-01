@@ -86,3 +86,6 @@ Build the centerpiece of M1: app/registry/, containing
 
 tool_contract.py — the @tool decorator + ToolResult shape every plugin must use.
 discovery.py — recursive plugin discovery using pkgutil.walk_packages (never iter_modules, per the documented lesson), scanning plugins/ and registering every @tool-decorated function it finds, including ones nested in subpackages like plugins/google/gmail/.
+
+## M1 — Step 5: Boot Sequence + Milestone Close
+Wire up the real main.py startup sequence — configure_logging() → init_db() → discover_tools(), in that order, with each step's failure being loud and fatal (no silent partial-startup) — and tag the milestone.
