@@ -37,37 +37,37 @@ D:\Agent\
 └── README.md
 
 #==============================================================
-## M1 — Step 1: Project Scaffolding
+# M1 — Step 1: Project Scaffolding
 Lay down the full directory skeleton on disk, with plugins kept structurally separate from core framework code, config/secrets separated from code, and data/logs separated from source — so every later milestone has an obvious, uncontested home. This step creates structure and placeholder files only
 
-# Create project root and enter it
+### Create project root and enter it
 New-Item -ItemType Directory -Path "D:\Agent" -Force
 Set-Location "D:\Agent"
 
-# Core framework
+### Core framework
 New-Item -ItemType Directory -Path "app\core","app\registry","app\models" -Force
 
-# Plugin domains (empty for now, filled in M7+)
+### Plugin domains (empty for now, filled in M7+)
 New-Item -ItemType Directory -Path "plugins\excel","plugins\pdf","plugins\word","plugins\google","plugins\telegram" -Force
 
-# Secrets, data, logs, tests
+### Secrets, data, logs, tests
 New-Item -ItemType Directory -Path "config","data","logs","tests" -Force
 
-# __init__.py so every package is importable (recursive discovery needs real packages)
+### __init__.py so every package is importable (recursive discovery needs real packages)
 New-Item -ItemType File -Path "app\__init__.py","app\core\__init__.py","app\registry\__init__.py","app\models\__init__.py" -Force
 New-Item -ItemType File -Path "plugins\__init__.py","plugins\excel\__init__.py","plugins\pdf\__init__.py","plugins\word\__init__.py","plugins\google\__init__.py","plugins\telegram\__init__.py" -Force
 New-Item -ItemType File -Path "tests\__init__.py" -Force
 
-# .gitkeep so empty runtime dirs still exist in git (contents themselves are ignored)
+### .gitkeep so empty runtime dirs still exist in git (contents themselves are ignored)
 New-Item -ItemType File -Path "data\.gitkeep","logs\.gitkeep" -Force
 
-# Git init
+### Git init
 git init
 
-# To check Folder tree 
+### To check Folder tree 
 Get-ChildItem -Recurse -Directory | Select-Object FullName
 
-# Git recognizes the repo and .gitignore is working (should NOT list data/logs/.env)
+### Git recognizes the repo and .gitignore is working (should NOT list data/logs/.env)
 git status
 
 #==============================================
