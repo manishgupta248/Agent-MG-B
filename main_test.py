@@ -173,6 +173,72 @@ def test_call_tool_batch_approval_per_run():
     assert result2.success is True, "second call in the same run_id should reuse the batch approval, not re-prompt"
     print("[M2-S2] Batch approval OK - second call in same run_id reused first call's approval")
 
+def test_event_bus_basic_pubsub():
+    """M3-S1: confirm subscribe/publish delivers events to a handler."""
+    from app.core.event_bus import subscribe, publish, unsubscribe, clear_subscribers
+
+    received = []
+
+    def handler(event):
+        received.append(event)
+
+    clear_subscribers()
+    subscribe("test.event", handler)
+    publish("test.event", {"foo": "bar"})
+
+    assert len(received) == 1, "handler should have received exactly one event"
+    assert received[0].event_name == "test.event"
+    assert received[0].payload == {"foo": "bar"}
+
+    unsubscribe("test.event", handler)
+    publish("test.event", {"foo": "baz"})
+    assert len(received) == 1, "handler should not receive events after unsubscribing"
+
+    print("[M3-S1] Event bus basic pub/sub OK")
+
+
+def test_event_bus_subscriber_exception_does_not_propagate():
+    """M3-S1: a broken subscriber must not crash the publisher."""
+    from app.core.event_bus import subscribe, publish, clear_subscribers
+
+    def broken_handler(event):
+        raise RuntimeError("intentionally broken handler")
+
+    clear_subscribers()
+    subscribe("test.broken", broken_handler)
+
+    # Should NOT raise, despite the subscriber blowing up internally.
+    publish("test.broken", {})
+    print("[M3-S1] Event bus subscriber-exception isolation OK")
+
+
+def test_call_tool_publishes_events():
+    """M3-S1: confirm call_tool publishes tool.succeeded and tool.failed
+    at the right points, without those events firing for pre-execution
+    rejections like an unknown tool name."""
+    from app.core.event_bus import subscribe, clear_subscribers
+    from app.core.call_tool import call_tool
+    from app.core.exceptions import ToolExecutionError
+
+    succeeded_events = []
+    failed_events = []
+
+    clear_subscribers()
+    subscribe("tool.succeeded", lambda e: succeeded_events.append(e))
+    subscribe("tool.failed", lambda e: failed_events.append(e))
+
+    call_tool("example_ping", {"message": "event test"})
+    assert len(succeeded_events) == 1
+    assert succeeded_events[0].payload["tool_name"] == "example_ping"
+
+    try:
+        call_tool("nonexistent_tool", {})
+    except ToolExecutionError:
+        pass
+    assert len(failed_events) == 0, "tool.failed should NOT fire for an unknown tool - it never ran"
+
+    print("[M3-S1] call_tool event publishing OK - tool.succeeded fired, tool.failed correctly did not fire for unknown tool")
+
 def main():
     print("[M1-S1] Scaffold check starting...")
     print("[M1-S1] Scaffold check complete.")
@@ -206,6 +272,12 @@ def main():
     test_call_tool_modify_denied()
     test_call_tool_batch_approval_per_run()
     print("[M2-S2] Approval gating checks complete.")
+
+    print("\n[M3-S1] Event bus checks starting...")
+    test_event_bus_basic_pubsub()
+    test_event_bus_subscriber_exception_does_not_propagate()
+    test_call_tool_publishes_events()
+    print("[M3-S1] Event bus checks complete.")
 
 if __name__ == "__main__":
     main()

@@ -31,6 +31,7 @@ from app.core.database import connection
 from app.core.exceptions import ToolExecutionError, ValidationError
 from app.models.tool_result import ToolResult
 from app.registry.tool_contract import get_registry
+from app.core.event_bus import publish
 
 from app.core.approval import (
     APPROVAL_POLICY,
@@ -151,10 +152,10 @@ def call_tool(
                 logger.info(error_message)
                 duration_ms = int((time.monotonic() - start) * 1000)
                 _log_execution(tool_name, input_dict, None, error_message, duration_ms, run_id)
-                raise ToolExecutionError(error_message)
+                raise ToolExecutionError(error_message)  # <-- no "from e" here, nothing raised
 
             mark_run_approved(run_id)
-            
+
     # --- Invocation ---
     try:
         result: ToolResult = registered.func(validated_input)
@@ -163,10 +164,21 @@ def call_tool(
         logger.error(error_message)
         duration_ms = int((time.monotonic() - start) * 1000)
         _log_execution(tool_name, input_dict, None, error_message, duration_ms, run_id)
-        raise ToolExecutionError(error_message) from e
+        publish("tool.failed", {
+            "tool_name": tool_name,
+            "error": error_message,
+            "run_id": run_id,
+        })
+        raise ToolExecutionError(error_message) from e  # <-- "from e" belongs ONLY here
 
     duration_ms = int((time.monotonic() - start) * 1000)
     _log_execution(tool_name, input_dict, result, None, duration_ms, run_id)
+
+    publish("tool.succeeded", {
+        "tool_name": tool_name,
+        "result": result.model_dump(),
+        "run_id": run_id,
+    })
 
     logger.info(f"Tool '{tool_name}' executed successfully in {duration_ms}ms")
     return result

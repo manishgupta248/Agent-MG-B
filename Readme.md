@@ -105,3 +105,7 @@ Wire the PermissionLevel enum (already declared per-tool since M1-S4) into an ac
 
 ## M2 — Step 3: Milestone Wrap-up (pytest suite + tag)
 Write a real pytest suite covering call_tool and approval gating with a properly isolated test database (the fixture calls init_db() itself, per the documented "test fixtures must call init_db() themselves" lesson — never assume a shared DB state). Run it, confirm green, then tag v0.2-m2-tool-framework.
+
+# ===============================================================
+## M3 — Step 1: Event Bus Core (pub/sub)
+Build app/core/event_bus.py: a simple, synchronous, in-process publish/subscribe mechanism that tools and call_tool can publish events to, and that future subsystems (Notification Framework in M5, Job Queue in M10, Scheduler in M11) can subscribe to — without those tools or call_tool ever knowing who's listening. This step builds the bus itself and wires call_tool to publish two events (tool.succeeded, tool.failed) on every invocation
