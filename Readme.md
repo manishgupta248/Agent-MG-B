@@ -102,3 +102,6 @@ call_tool is structurally guaranteed to never silently return None on success (t
 
 ## M2 — Step 2: Permission Profiles + ApprovalHandler
 Wire the PermissionLevel enum (already declared per-tool since M1-S4) into an actual approval-gating policy inside call_tool. Build a pluggable ApprovalHandler interface per Section 2, with two safe concrete implementations for now (CLIApprovalHandler for manual dev testing, AutoApproveHandler/AutoDenyHandler strictly for automated tests) — the real Telegram-based handler arrives in M6. Also stub the "one batch approval per run" behavior: multiple call_tool invocations sharing a run_id only prompt once.
+
+## M2 — Step 3: Milestone Wrap-up (pytest suite + tag)
+Write a real pytest suite covering call_tool and approval gating with a properly isolated test database (the fixture calls init_db() itself, per the documented "test fixtures must call init_db() themselves" lesson — never assume a shared DB state). Run it, confirm green, then tag v0.2-m2-tool-framework.
