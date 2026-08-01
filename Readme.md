@@ -80,3 +80,9 @@ app/core/exceptions.py — the base exception hierarchy now, since Step 5 lesson
 
 ## M1 — Step 3: Database Layer
 Build app/core/database.py: a single SQLite connection helper plus init_db() that creates all foundational tables — most importantly execution_history, the audit table every tool call writes to automatically (per Section 2's "full audit trail" requirement), so it exists before the tool registry (M1 Step 4 / M2) needs to write to it.
+
+## M1 — Step 4: Plugin Registry (recursive tool discovery)
+Build the centerpiece of M1: app/registry/, containing
+
+tool_contract.py — the @tool decorator + ToolResult shape every plugin must use.
+discovery.py — recursive plugin discovery using pkgutil.walk_packages (never iter_modules, per the documented lesson), scanning plugins/ and registering every @tool-decorated function it finds, including ones nested in subpackages like plugins/google/gmail/.

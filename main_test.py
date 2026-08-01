@@ -40,6 +40,19 @@ def test_database_init():
 
     print("[M1-S3] Database OK - execution_history table confirmed")
 
+def test_plugin_discovery():
+    """M1-S4: confirm recursive discovery finds both the top-level AND
+    the nested example tool - proves walk_packages actually recurses."""
+    from app.registry.discovery import discover_tools
+    from app.registry.tool_contract import get_registry
+
+    count = discover_tools()
+    registry = get_registry()
+
+    assert "example_ping" in registry, "top-level example tool should be registered"
+    assert "example_deep_ping" in registry, "nested example tool should be registered - if missing, recursion is broken"
+    print(f"[M1-S4] Registry OK - {count} tool(s) registered: {list(registry.keys())}")
+
 
 def main():
     print("[M1-S1] Scaffold check starting...")
@@ -55,6 +68,10 @@ def main():
     print("\n[M1-S3] Database checks starting...")
     test_database_init()
     print("[M1-S3] Database checks complete.")
+
+    print("\n[M1-S4] Plugin registry checks starting...")
+    test_plugin_discovery()
+    print("[M1-S4] Plugin registry checks complete.")
 
 
 if __name__ == "__main__":
