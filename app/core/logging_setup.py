@@ -46,4 +46,4 @@ def configure_logging() -> None:
         format="<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan> - <level>{message}</level>",
     )
 
-    logger.info(f"Logging configured — env={settings.app_env}, level={settings.log_level}")
+    logger.info(f"Logging configured - env={settings.app_env}, level={settings.log_level}")

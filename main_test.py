@@ -25,6 +25,21 @@ def test_logging_writes():
     logger.warning("Warning-level test message")
     print("[M1-S2] Logging OK — check logs/agent.log for file output")
 
+def test_database_init():
+    """M1-S3: confirm init_db() runs cleanly and execution_history table exists."""
+    from app.core.database import init_db, connection
+
+    init_db()
+
+    with connection() as conn:
+        cursor = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='execution_history'"
+        )
+        row = cursor.fetchone()
+        assert row is not None, "execution_history table should exist after init_db()"
+
+    print("[M1-S3] Database OK - execution_history table confirmed")
+
 
 def main():
     print("[M1-S1] Scaffold check starting...")
@@ -36,6 +51,10 @@ def main():
     test_config_loads()
     test_logging_writes()
     print("[M1-S2] Config + Logging checks complete.")
+
+    print("\n[M1-S3] Database checks starting...")
+    test_database_init()
+    print("[M1-S3] Database checks complete.")
 
 
 if __name__ == "__main__":

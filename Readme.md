@@ -77,3 +77,6 @@ Build the two lowest-level "spine" modules that everything else depends on:
 app/core/config.py — a single Pydantic Settings object that loads .env, validates required keys exist, and exposes typed config to the whole app (no module anywhere else reads os.environ directly — always through this).
 app/core/logging_setup.py — Loguru configured once, rotating file logs in logs/, console output for dev, called once at startup and imported everywhere else as an already-configured logger.
 app/core/exceptions.py — the base exception hierarchy now, since Step 5 lessons (wrapped re-raises) require it to exist before any tool code is written.
+
+## M1 — Step 3: Database Layer
+Build app/core/database.py: a single SQLite connection helper plus init_db() that creates all foundational tables — most importantly execution_history, the audit table every tool call writes to automatically (per Section 2's "full audit trail" requirement), so it exists before the tool registry (M1 Step 4 / M2) needs to write to it.
