@@ -267,6 +267,52 @@ def test_approval_events():
     assert len(granted) == 3, "3rd and 4th calls: fresh + batch-reused, both grant"
     assert len(requested) == 3, "3 fresh calls request; only the batch-reused 4th call should NOT trigger a new request"
     print("[M3-S2] Approval events OK - requested/granted/denied fire at correct points")
+def test_knowledge_base_crud():
+    """M4-S1: confirm add/get/list/update/delete all work correctly."""
+    from app.core.knowledge_base import (
+        init_knowledge_base,
+        add_knowledge_item,
+        get_knowledge_item,
+        list_knowledge_items,
+        update_knowledge_item,
+        delete_knowledge_item,
+    )
+
+    init_knowledge_base()
+
+    item_id = add_knowledge_item("note", "Test note content", metadata={"source": "main_test"})
+    assert item_id is not None
+
+    item = get_knowledge_item(item_id)
+    assert item["content"] == "Test note content"
+    assert item["content_type"] == "note"
+    assert item["metadata"] == {"source": "main_test"}
+    assert item["embedding"] is None, "embedding should be nullable and unpopulated for now"
+
+    items = list_knowledge_items(content_type="note")
+    assert any(i["id"] == item_id for i in items)
+
+    updated = update_knowledge_item(item_id, content="Updated content")
+    assert updated is True
+    assert get_knowledge_item(item_id)["content"] == "Updated content"
+
+    deleted = delete_knowledge_item(item_id)
+    assert deleted is True
+    assert get_knowledge_item(item_id) is None
+
+    print("[M4-S1] Knowledge base CRUD OK - add/get/list/update/delete all correct")
+
+
+def test_knowledge_base_invalid_content_type():
+    """M4-S1: confirm an invalid content_type is rejected, not silently accepted."""
+    from app.core.knowledge_base import add_knowledge_item
+    from app.core.exceptions import ValidationError
+
+    try:
+        add_knowledge_item("not_a_real_type", "content")
+        assert False, "should have raised ValidationError for invalid content_type"
+    except ValidationError:
+        print("[M4-S1] Invalid content_type correctly rejected")
 
 def main():
     print("[M1-S1] Scaffold check starting...")
@@ -311,6 +357,11 @@ def main():
     print("\n[M3-S2] Approval event checks starting...")
     test_approval_events()
     print("[M3-S2] Approval event checks complete.")
+
+    print("\n[M4-S1] Knowledge base checks starting...")
+    test_knowledge_base_crud()
+    test_knowledge_base_invalid_content_type()
+    print("[M4-S1] Knowledge base checks complete.")
 
 if __name__ == "__main__":
     main()

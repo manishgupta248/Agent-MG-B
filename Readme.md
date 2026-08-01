@@ -112,3 +112,7 @@ Build app/core/event_bus.py: a simple, synchronous, in-process publish/subscribe
 
 ## M3 — Step 2: Approval Events + Milestone Wrap-up
 Add three more event types specifically around the approval-gating flow — tool.approval_requested, tool.approval_granted, tool.approval_denied — since the Notification Framework (M5) will want to notify the person about pending approvals, not just completed calls. Then close out M3: a dedicated tests/test_event_bus.py, full pytest run, and tag v0.3-m3-event-bus.
+
+# =======================================================================
+## M4 — Step 1: Central Knowledge Base Schema
+Build app/core/knowledge_base.py: the SQLite-backed store for notes, contacts, preferences, and long-term memory (Section 4, item 1). This step focuses on the schema and basic CRUD operations — a knowledge_items table designed so embeddings can be added in a later phase (likely alongside LangGraph/semantic search work) without a schema rewrite.

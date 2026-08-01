@@ -17,6 +17,7 @@ from loguru import logger
 from app.core.logging_setup import configure_logging
 from app.core.database import init_db
 from app.registry.discovery import discover_tools
+from app.core.knowledge_base import init_knowledge_base
 
 
 def bootstrap() -> None:
@@ -25,6 +26,7 @@ def bootstrap() -> None:
     logger.info("Starting Personal AI Agent boot sequence...")
 
     init_db()
+    init_knowledge_base()
 
     tool_count = discover_tools()
     logger.info(f"Boot sequence complete - {tool_count} tool(s) available")
