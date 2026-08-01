@@ -37,6 +37,8 @@ D:\Agent\
 └── README.md
 
 #==============================================================
+## M1 — Step 1: Project Scaffolding
+Lay down the full directory skeleton on disk, with plugins kept structurally separate from core framework code, config/secrets separated from code, and data/logs separated from source — so every later milestone has an obvious, uncontested home. This step creates structure and placeholder files only
 
 # Create project root and enter it
 New-Item -ItemType Directory -Path "D:\Agent" -Force
@@ -67,3 +69,11 @@ Get-ChildItem -Recurse -Directory | Select-Object FullName
 
 # Git recognizes the repo and .gitignore is working (should NOT list data/logs/.env)
 git status
+
+#==============================================
+## M1 — Step 2: Config + Logging
+Build the two lowest-level "spine" modules that everything else depends on:
+
+app/core/config.py — a single Pydantic Settings object that loads .env, validates required keys exist, and exposes typed config to the whole app (no module anywhere else reads os.environ directly — always through this).
+app/core/logging_setup.py — Loguru configured once, rotating file logs in logs/, console output for dev, called once at startup and imported everywhere else as an already-configured logger.
+app/core/exceptions.py — the base exception hierarchy now, since Step 5 lessons (wrapped re-raises) require it to exist before any tool code is written.
