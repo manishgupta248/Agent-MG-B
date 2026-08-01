@@ -131,10 +131,17 @@ def call_tool(
         raise ValidationError(error_message) from e
 
     # --- Approval gating ---
+    # --- Approval gating ---
     approval_required = APPROVAL_POLICY.get(registered.permission, True)  # fail-safe default: require approval
     if approval_required:
         if is_run_already_approved(run_id):
             logger.info(f"Tool '{tool_name}' covered by existing batch approval for run_id={run_id}")
+            publish("tool.approval_granted", {
+                "tool_name": tool_name,
+                "permission": registered.permission.value,
+                "run_id": run_id,
+                "batch_reused": True,
+            })
         else:
             if approval_handler is None:
                 error_message = (
@@ -146,15 +153,33 @@ def call_tool(
                 _log_execution(tool_name, input_dict, None, error_message, duration_ms, run_id)
                 raise ToolExecutionError(error_message)
 
+            publish("tool.approval_requested", {
+                "tool_name": tool_name,
+                "permission": registered.permission.value,
+                "input": input_dict,
+                "run_id": run_id,
+            })
+
             approved = approval_handler.request_approval(tool_name, registered.permission, input_dict)
             if not approved:
                 error_message = f"Tool '{tool_name}' execution denied by approval handler"
                 logger.info(error_message)
                 duration_ms = int((time.monotonic() - start) * 1000)
                 _log_execution(tool_name, input_dict, None, error_message, duration_ms, run_id)
-                raise ToolExecutionError(error_message)  # <-- no "from e" here, nothing raised
+                publish("tool.approval_denied", {
+                    "tool_name": tool_name,
+                    "permission": registered.permission.value,
+                    "run_id": run_id,
+                })
+                raise ToolExecutionError(error_message)
 
             mark_run_approved(run_id)
+            publish("tool.approval_granted", {
+                "tool_name": tool_name,
+                "permission": registered.permission.value,
+                "run_id": run_id,
+                "batch_reused": False,
+            })
 
     # --- Invocation ---
     try:

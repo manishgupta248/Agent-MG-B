@@ -109,3 +109,6 @@ Write a real pytest suite covering call_tool and approval gating with a properly
 # ===============================================================
 ## M3 — Step 1: Event Bus Core (pub/sub)
 Build app/core/event_bus.py: a simple, synchronous, in-process publish/subscribe mechanism that tools and call_tool can publish events to, and that future subsystems (Notification Framework in M5, Job Queue in M10, Scheduler in M11) can subscribe to — without those tools or call_tool ever knowing who's listening. This step builds the bus itself and wires call_tool to publish two events (tool.succeeded, tool.failed) on every invocation
+
+## M3 — Step 2: Approval Events + Milestone Wrap-up
+Add three more event types specifically around the approval-gating flow — tool.approval_requested, tool.approval_granted, tool.approval_denied — since the Notification Framework (M5) will want to notify the person about pending approvals, not just completed calls. Then close out M3: a dedicated tests/test_event_bus.py, full pytest run, and tag v0.3-m3-event-bus.

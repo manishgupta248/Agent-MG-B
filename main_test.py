@@ -239,6 +239,35 @@ def test_call_tool_publishes_events():
 
     print("[M3-S1] call_tool event publishing OK - tool.succeeded fired, tool.failed correctly did not fire for unknown tool")
 
+def test_approval_events():
+    """M3-S2: confirm approval_requested/granted/denied fire at the right points."""
+    from app.core.event_bus import subscribe, clear_subscribers
+    from app.core.call_tool import call_tool
+    from app.core.approval import AutoApproveHandler, AutoDenyHandler
+    from app.core.exceptions import ToolExecutionError
+
+    requested, granted, denied = [], [], []
+    clear_subscribers()
+    subscribe("tool.approval_requested", lambda e: requested.append(e))
+    subscribe("tool.approval_granted", lambda e: granted.append(e))
+    subscribe("tool.approval_denied", lambda e: denied.append(e))
+
+    call_tool("example_modify", {"value": "x"}, approval_handler=AutoApproveHandler())
+    assert len(requested) == 1 and len(granted) == 1 and len(denied) == 0
+
+    try:
+        call_tool("example_modify", {"value": "x"}, approval_handler=AutoDenyHandler())
+    except ToolExecutionError:
+        pass
+    assert len(denied) == 1
+
+    run_id = "main-test-batch"
+    call_tool("example_modify", {"value": "x"}, run_id=run_id, approval_handler=AutoApproveHandler())
+    call_tool("example_modify", {"value": "x"}, run_id=run_id, approval_handler=AutoDenyHandler())
+    assert len(granted) == 3, "3rd and 4th calls: fresh + batch-reused, both grant"
+    assert len(requested) == 3, "3 fresh calls request; only the batch-reused 4th call should NOT trigger a new request"
+    print("[M3-S2] Approval events OK - requested/granted/denied fire at correct points")
+
 def main():
     print("[M1-S1] Scaffold check starting...")
     print("[M1-S1] Scaffold check complete.")
@@ -278,6 +307,10 @@ def main():
     test_event_bus_subscriber_exception_does_not_propagate()
     test_call_tool_publishes_events()
     print("[M3-S1] Event bus checks complete.")
+
+    print("\n[M3-S2] Approval event checks starting...")
+    test_approval_events()
+    print("[M3-S2] Approval event checks complete.")
 
 if __name__ == "__main__":
     main()
