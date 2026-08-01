@@ -1,0 +1,32 @@
+# --- Config & validation ---
+pydantic>=2.7
+pydantic-settings>=2.3
+
+# --- Logging ---
+loguru>=0.7
+
+# --- Data (Excel / PDF / Word) ---
+openpyxl>=3.1
+pypdf>=4.2
+pdfplumber>=0.11
+python-docx>=1.1
+
+# --- Telegram ---
+python-telegram-bot>=21.0
+
+# --- LLM providers ---
+google-genai>=0.5
+groq>=0.9
+
+# --- Google Workspace (unified OAuth) ---
+google-auth>=2.29
+google-auth-oauthlib>=1.2
+google-api-python-client>=2.130
+
+# --- Intent matching & orchestration ---
+rapidfuzz>=3.9
+langgraph>=0.1
+
+# --- Testing (milestone-only, not per-step) ---
+pytest>=8.2
+pytest-asyncio>=0.23
