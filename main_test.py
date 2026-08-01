@@ -108,6 +108,70 @@ def test_call_tool_audit_logged():
     assert after == before + 1, "exactly one execution_history row should be written per call_tool invocation"
     print(f"[M2-S1] Audit logging OK - execution_history grew from {before} to {after}")
 
+def test_call_tool_read_needs_no_approval():
+    """M2-S2: READ-permission tools should never require an approval_handler."""
+    from app.core.call_tool import call_tool
+
+    result = call_tool("example_ping", {"message": "no approval needed"})
+    assert result.success is True
+    print("[M2-S2] READ tool bypassed approval gate correctly")
+
+
+def test_call_tool_modify_denied_without_handler():
+    """M2-S2: MODIFY-permission tool with NO approval_handler must fail loudly,
+    never silently skip the gate."""
+    from app.core.call_tool import call_tool
+    from app.core.exceptions import ToolExecutionError
+
+    try:
+        call_tool("example_modify", {"value": "x"})
+        assert False, "should have raised - no approval_handler was provided for a MODIFY tool"
+    except ToolExecutionError:
+        print("[M2-S2] MODIFY tool correctly refused to run without an approval_handler")
+
+
+def test_call_tool_modify_approved():
+    """M2-S2: MODIFY tool runs when AutoApproveHandler approves it."""
+    from app.core.call_tool import call_tool
+    from app.core.approval import AutoApproveHandler
+
+    result = call_tool("example_modify", {"value": "approved run"}, approval_handler=AutoApproveHandler())
+    assert result.success is True
+    print(f"[M2-S2] MODIFY tool approved and ran - result={result.data}")
+
+
+def test_call_tool_modify_denied():
+    """M2-S2: MODIFY tool raises when AutoDenyHandler denies it."""
+    from app.core.call_tool import call_tool
+    from app.core.approval import AutoDenyHandler
+    from app.core.exceptions import ToolExecutionError
+
+    try:
+        call_tool("example_modify", {"value": "denied run"}, approval_handler=AutoDenyHandler())
+        assert False, "should have raised - AutoDenyHandler denies everything"
+    except ToolExecutionError:
+        print("[M2-S2] MODIFY tool correctly blocked by denial")
+
+
+def test_call_tool_batch_approval_per_run():
+    """M2-S2: two calls sharing a run_id should only prompt/approve ONCE -
+    the second call reuses the first's approval (Section 2 batch-approval rule)."""
+    from app.core.call_tool import call_tool
+    from app.core.approval import AutoDenyHandler  # denier - proves 2nd call did NOT re-prompt
+
+    run_id = "test-batch-run-001"
+
+    # First call: approve via AutoApproveHandler explicitly.
+    from app.core.approval import AutoApproveHandler
+    result1 = call_tool("example_modify", {"value": "first"}, run_id=run_id, approval_handler=AutoApproveHandler())
+    assert result1.success is True
+
+    # Second call, SAME run_id, but pass a DENIER this time - if batching
+    # works, it should succeed anyway because the run was already approved
+    # and the handler should never even be consulted.
+    result2 = call_tool("example_modify", {"value": "second"}, run_id=run_id, approval_handler=AutoDenyHandler())
+    assert result2.success is True, "second call in the same run_id should reuse the batch approval, not re-prompt"
+    print("[M2-S2] Batch approval OK - second call in same run_id reused first call's approval")
 
 def main():
     print("[M1-S1] Scaffold check starting...")
@@ -134,6 +198,14 @@ def main():
     test_call_tool_invalid_input()
     test_call_tool_audit_logged()
     print("[M2-S1] call_tool pipeline checks complete.")
-    
+
+    print("\n[M2-S2] Approval gating checks starting...")
+    test_call_tool_read_needs_no_approval()
+    test_call_tool_modify_denied_without_handler()
+    test_call_tool_modify_approved()
+    test_call_tool_modify_denied()
+    test_call_tool_batch_approval_per_run()
+    print("[M2-S2] Approval gating checks complete.")
+
 if __name__ == "__main__":
     main()

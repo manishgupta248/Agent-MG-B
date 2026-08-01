@@ -99,3 +99,6 @@ the tool_name-not-name parameter-collision fix (Section 5) is applied structural
 input is validated against the tool's input_schema before the function ever runs,
 every call — success or failure — writes a row to execution_history automatically, with no tool ever having to remember to log itself,
 call_tool is structurally guaranteed to never silently return None on success (the documented prior bug), because its return type is ToolResult, not Optional[ToolResult], and every code path either returns a populated ToolResult or raises.
+
+## M2 — Step 2: Permission Profiles + ApprovalHandler
+Wire the PermissionLevel enum (already declared per-tool since M1-S4) into an actual approval-gating policy inside call_tool. Build a pluggable ApprovalHandler interface per Section 2, with two safe concrete implementations for now (CLIApprovalHandler for manual dev testing, AutoApproveHandler/AutoDenyHandler strictly for automated tests) — the real Telegram-based handler arrives in M6. Also stub the "one batch approval per run" behavior: multiple call_tool invocations sharing a run_id only prompt once.

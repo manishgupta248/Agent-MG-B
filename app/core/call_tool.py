@@ -32,6 +32,13 @@ from app.core.exceptions import ToolExecutionError, ValidationError
 from app.models.tool_result import ToolResult
 from app.registry.tool_contract import get_registry
 
+from app.core.approval import (
+    APPROVAL_POLICY,
+    ApprovalHandler,
+    is_run_already_approved,
+    mark_run_approved,
+)
+
 
 def _log_execution(
     tool_name: str,
@@ -72,7 +79,12 @@ def _log_execution(
         logger.error(f"Failed to write execution_history row for tool '{tool_name}': {e}")
 
 
-def call_tool(tool_name: str, input_dict: dict, run_id: str | None = None) -> ToolResult:
+def call_tool(
+    tool_name: str,
+    input_dict: dict,
+    run_id: str | None = None,
+    approval_handler: ApprovalHandler | None = None,
+) -> ToolResult:
     """
     Look up a registered tool by name, validate input_dict against its
     input_schema, invoke it, log the outcome to execution_history, and
@@ -82,13 +94,17 @@ def call_tool(tool_name: str, input_dict: dict, run_id: str | None = None) -> To
         tool_name: registered tool name (NOT `name` - see module docstring)
         input_dict: raw input, validated against the tool's Pydantic input_schema
         run_id: optional grouping id for multi-step runs (used starting M10/M13)
+        approval_handler: required if the tool's permission level needs approval
+            (see APPROVAL_POLICY in app.core.approval); omitting it when required
+            is a hard failure, never a silent skip
 
     Returns:
         ToolResult - always. Never None.
 
     Raises:
-        ToolExecutionError: tool_name not found, input validation failed,
-            or the tool function itself raised during execution.
+        ToolExecutionError: tool_name not found, approval required but no handler
+            given, approval was denied, or the tool function itself raised.
+        ValidationError: input failed validation against the tool's input_schema.
     """
     start = time.monotonic()
     registry = get_registry()
@@ -113,6 +129,32 @@ def call_tool(tool_name: str, input_dict: dict, run_id: str | None = None) -> To
         # re-raise of the Pydantic error outside this except block.
         raise ValidationError(error_message) from e
 
+    # --- Approval gating ---
+    approval_required = APPROVAL_POLICY.get(registered.permission, True)  # fail-safe default: require approval
+    if approval_required:
+        if is_run_already_approved(run_id):
+            logger.info(f"Tool '{tool_name}' covered by existing batch approval for run_id={run_id}")
+        else:
+            if approval_handler is None:
+                error_message = (
+                    f"Tool '{tool_name}' requires approval (permission={registered.permission.value}) "
+                    f"but no approval_handler was provided"
+                )
+                logger.error(error_message)
+                duration_ms = int((time.monotonic() - start) * 1000)
+                _log_execution(tool_name, input_dict, None, error_message, duration_ms, run_id)
+                raise ToolExecutionError(error_message)
+
+            approved = approval_handler.request_approval(tool_name, registered.permission, input_dict)
+            if not approved:
+                error_message = f"Tool '{tool_name}' execution denied by approval handler"
+                logger.info(error_message)
+                duration_ms = int((time.monotonic() - start) * 1000)
+                _log_execution(tool_name, input_dict, None, error_message, duration_ms, run_id)
+                raise ToolExecutionError(error_message)
+
+            mark_run_approved(run_id)
+            
     # --- Invocation ---
     try:
         result: ToolResult = registered.func(validated_input)
