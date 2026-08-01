@@ -89,3 +89,13 @@ discovery.py — recursive plugin discovery using pkgutil.walk_packages (never i
 
 ## M1 — Step 5: Boot Sequence + Milestone Close
 Wire up the real main.py startup sequence — configure_logging() → init_db() → discover_tools(), in that order, with each step's failure being loud and fatal (no silent partial-startup) — and tag the milestone.
+
+#===========================================================================
+
+## M2 — Step 1: The call_tool Pipeline
+Build app/core/call_tool.py — the single shared execution path every tier (Tier 1 regex, Tier 3 LLM, Tier 4 LangGraph, everything) routes through to actually invoke a tool. This is where:
+
+the tool_name-not-name parameter-collision fix (Section 5) is applied structurally,
+input is validated against the tool's input_schema before the function ever runs,
+every call — success or failure — writes a row to execution_history automatically, with no tool ever having to remember to log itself,
+call_tool is structurally guaranteed to never silently return None on success (the documented prior bug), because its return type is ToolResult, not Optional[ToolResult], and every code path either returns a populated ToolResult or raises.

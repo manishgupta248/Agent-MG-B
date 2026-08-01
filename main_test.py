@@ -53,6 +53,61 @@ def test_plugin_discovery():
     assert "example_deep_ping" in registry, "nested example tool should be registered - if missing, recursion is broken"
     print(f"[M1-S4] Registry OK - {count} tool(s) registered: {list(registry.keys())}")
 
+def test_call_tool_success():
+    """M2-S1: confirm call_tool successfully invokes a registered tool
+    and returns a populated ToolResult - never None."""
+    from app.core.call_tool import call_tool
+
+    result = call_tool("example_ping", {"message": "hello M2"})
+    assert result is not None, "call_tool must never return None"
+    assert result.success is True
+    assert result.data == "hello M2"
+    print(f"[M2-S1] call_tool success path OK - result={result.data}")
+
+
+def test_call_tool_unknown_tool():
+    """M2-S1: confirm call_tool raises ToolExecutionError for an unregistered tool name."""
+    from app.core.call_tool import call_tool
+    from app.core.exceptions import ToolExecutionError
+
+    try:
+        call_tool("this_tool_does_not_exist", {})
+        assert False, "call_tool should have raised for an unknown tool"
+    except ToolExecutionError:
+        print("[M2-S1] call_tool unknown-tool path OK - raised ToolExecutionError as expected")
+
+
+def test_call_tool_invalid_input():
+    """M2-S1: confirm invalid input is rejected BEFORE the tool function runs
+    - directly tests the 'missing input_schema silently allows bad input' lesson."""
+    from app.core.call_tool import call_tool
+    from app.core.exceptions import ValidationError
+
+    try:
+        # example_ping expects `message: str` - passing an int should fail Pydantic validation
+        call_tool("example_ping", {"message": {"not": "a string or int-coercible value"}})
+        assert False, "call_tool should have raised ValidationError for bad input"
+    except ValidationError:
+        print("[M2-S1] call_tool input-validation path OK - raised ValidationError as expected")
+
+
+def test_call_tool_audit_logged():
+    """M2-S1: confirm every call_tool invocation writes a row to execution_history,
+    regardless of success/failure - the Section 2 'full audit trail' requirement."""
+    from app.core.call_tool import call_tool
+    from app.core.database import connection
+
+    with connection() as conn:
+        before = conn.execute("SELECT COUNT(*) as c FROM execution_history").fetchone()["c"]
+
+    call_tool("example_ping", {"message": "audit check"})
+
+    with connection() as conn:
+        after = conn.execute("SELECT COUNT(*) as c FROM execution_history").fetchone()["c"]
+
+    assert after == before + 1, "exactly one execution_history row should be written per call_tool invocation"
+    print(f"[M2-S1] Audit logging OK - execution_history grew from {before} to {after}")
+
 
 def main():
     print("[M1-S1] Scaffold check starting...")
@@ -73,6 +128,12 @@ def main():
     test_plugin_discovery()
     print("[M1-S4] Plugin registry checks complete.")
 
-
+    print("\n[M2-S1] call_tool pipeline checks starting...")
+    test_call_tool_success()
+    test_call_tool_unknown_tool()
+    test_call_tool_invalid_input()
+    test_call_tool_audit_logged()
+    print("[M2-S1] call_tool pipeline checks complete.")
+    
 if __name__ == "__main__":
     main()
