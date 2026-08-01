@@ -116,3 +116,6 @@ Add three more event types specifically around the approval-gating flow — tool
 # =======================================================================
 ## M4 — Step 1: Central Knowledge Base Schema
 Build app/core/knowledge_base.py: the SQLite-backed store for notes, contacts, preferences, and long-term memory (Section 4, item 1). This step focuses on the schema and basic CRUD operations — a knowledge_items table designed so embeddings can be added in a later phase (likely alongside LangGraph/semantic search work) without a schema rewrite.
+
+## M4 — Step 2: Knowledge Base as Tools + Milestone Wrap-up
+Expose the knowledge base to the agent itself via real @tool-decorated plugins in plugins/knowledge/ — add_note, search_knowledge, get_knowledge_item, update_knowledge_item, delete_knowledge_item — so future tiers (regex, LLM, LangGraph) can actually let the agent read/write its own memory, not just internal code. Then close out M4: pytest suite, full run, tag v0.4-m4-knowledge-base.

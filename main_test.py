@@ -313,6 +313,29 @@ def test_knowledge_base_invalid_content_type():
         assert False, "should have raised ValidationError for invalid content_type"
     except ValidationError:
         print("[M4-S1] Invalid content_type correctly rejected")
+def test_knowledge_tools():
+    """M4-S2: confirm the knowledge base @tool wrappers work end-to-end via call_tool."""
+    from app.core.call_tool import call_tool
+    from app.core.approval import AutoApproveHandler
+
+    add_result = call_tool(
+        "add_knowledge_item",
+        {"content_type": "preference", "content": "prefers dark mode UIs"},
+        approval_handler=AutoApproveHandler(),
+    )
+    assert add_result.success is True
+    item_id = add_result.data["id"]
+
+    search_result = call_tool("search_knowledge", {"query": "dark mode"})
+    assert search_result.success is True
+    assert any(i["id"] == item_id for i in search_result.data)
+
+    delete_result = call_tool(
+        "delete_knowledge_item", {"item_id": item_id}, approval_handler=AutoApproveHandler()
+    )
+    assert delete_result.success is True
+
+    print("[M4-S2] Knowledge base tools OK - add/search/delete via call_tool all correct")
 
 def main():
     print("[M1-S1] Scaffold check starting...")
@@ -362,6 +385,10 @@ def main():
     test_knowledge_base_crud()
     test_knowledge_base_invalid_content_type()
     print("[M4-S1] Knowledge base checks complete.")
+
+    print("\n[M4-S2] Knowledge base tools checks starting...")
+    test_knowledge_tools()
+    print("[M4-S2] Knowledge base tools checks complete.")
 
 if __name__ == "__main__":
     main()
