@@ -37,7 +37,7 @@ D:\Agent\
 └── README.md
 
 #==============================================================
-# M1 — Step 1: Project Scaffolding
+## M1 — Step 1: Project Scaffolding
 Lay down the full directory skeleton on disk, with plugins kept structurally separate from core framework code, config/secrets separated from code, and data/logs separated from source — so every later milestone has an obvious, uncontested home. This step creates structure and placeholder files only
 
 ### Create project root and enter it
@@ -119,3 +119,8 @@ Build app/core/knowledge_base.py: the SQLite-backed store for notes, contacts, p
 
 ## M4 — Step 2: Knowledge Base as Tools + Milestone Wrap-up
 Expose the knowledge base to the agent itself via real @tool-decorated plugins in plugins/knowledge/ — add_note, search_knowledge, get_knowledge_item, update_knowledge_item, delete_knowledge_item — so future tiers (regex, LLM, LangGraph) can actually let the agent read/write its own memory, not just internal code. Then close out M4: pytest suite, full run, tag v0.4-m4-knowledge-base.
+
+# =====================================================================
+
+## M5 — Step 1: Notification Framework Core
+Build app/core/notifications.py: the channel-abstracted notification system from Section 4, item 5. This step defines the NotificationChannel interface, a NotificationManager that can hold and broadcast to multiple channels at once, and one concrete starter implementation — ConsoleNotificationChannel.

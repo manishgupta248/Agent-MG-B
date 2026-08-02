@@ -336,6 +336,49 @@ def test_knowledge_tools():
     assert delete_result.success is True
 
     print("[M4-S2] Knowledge base tools OK - add/search/delete via call_tool all correct")
+def test_notification_channel_console():
+    """M5-S1: confirm ConsoleNotificationChannel sends successfully."""
+    from app.core.notifications import ConsoleNotificationChannel
+
+    channel = ConsoleNotificationChannel()
+    result = channel.send("Test Title", "Test message body", metadata={"source": "main_test"})
+    assert result is True
+    print("[M5-S1] ConsoleNotificationChannel OK")
+
+
+def test_notification_manager_broadcasts_to_all_channels():
+    """M5-S1: confirm NotificationManager broadcasts to multiple channels
+    and isolates a broken channel from the others."""
+    from app.core.notifications import NotificationManager, NotificationChannel
+
+    sent_log = []
+
+    class WorkingChannel(NotificationChannel):
+        @property
+        def channel_name(self) -> str:
+            return "working"
+
+        def send(self, title, message, metadata=None) -> bool:
+            sent_log.append((title, message))
+            return True
+
+    class BrokenChannel(NotificationChannel):
+        @property
+        def channel_name(self) -> str:
+            return "broken"
+
+        def send(self, title, message, metadata=None) -> bool:
+            raise RuntimeError("intentionally broken channel")
+
+    manager = NotificationManager()
+    manager.register_channel(WorkingChannel())
+    manager.register_channel(BrokenChannel())
+
+    results = manager.notify("Broadcast Test", "hello all channels")
+
+    assert results == {"working": True, "broken": False}
+    assert len(sent_log) == 1
+    print("[M5-S1] NotificationManager OK - broadcast to multiple channels, isolated the broken one")
 
 def main():
     print("[M1-S1] Scaffold check starting...")
@@ -389,6 +432,11 @@ def main():
     print("\n[M4-S2] Knowledge base tools checks starting...")
     test_knowledge_tools()
     print("[M4-S2] Knowledge base tools checks complete.")
+
+    print("\n[M5-S1] Notification framework checks starting...")
+    test_notification_channel_console()
+    test_notification_manager_broadcasts_to_all_channels()
+    print("[M5-S1] Notification framework checks complete.")
 
 if __name__ == "__main__":
     main()
