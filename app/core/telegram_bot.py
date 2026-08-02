@@ -38,6 +38,20 @@ from app.core.notifications import NotificationChannel
 # instance/connection that owns the polling loop - never a second one.
 _application: Application | None = None
 
+_bot_event_loop: asyncio.AbstractEventLoop | None = None
+
+
+async def _capture_bot_loop(application: Application) -> None:
+    """
+    post_init hook - runs once, inside the bot's own event loop, right
+    as it starts. Captures a reference to THAT specific loop, since the
+    bot's internal HTTP client locks/events are bound to it. Any code
+    sending a message from a different thread must schedule onto this
+    exact loop, not just "a" loop via asyncio.run().
+    """
+    global _bot_event_loop
+    _bot_event_loop = asyncio.get_running_loop()
+    logger.debug("Captured Telegram bot's event loop reference")
 
 def _is_allowed_user(update: Update) -> bool:
     """Every handler checks this FIRST, before any other logic - this is
@@ -69,6 +83,7 @@ def build_application() -> Application:
         ApplicationBuilder()
         .token(settings.telegram_bot_token)
         .concurrent_updates(True)
+        .post_init(_capture_bot_loop)
         .build()
     )
     application.add_handler(CommandHandler("start", _start_command))
@@ -124,24 +139,21 @@ class TelegramNotificationChannel(NotificationChannel):
 
     def _send_sync_bridge(self, application: Application, text: str) -> None:
         """
-        Runs the async send_message call from synchronous code.
-        Detects whether an event loop is already running in the current
-        thread; if so (e.g. called from within a Telegram handler's own
-        loop), schedules onto it via run_coroutine_threadsafe and waits
-        for the result. If not, it's safe to asyncio.run() directly.
+        Runs the async send_message call from synchronous code, ALWAYS
+        scheduled onto the bot's own captured event loop - never a
+        freshly created one via asyncio.run(). The bot's internal HTTP
+        client holds locks/events bound to the specific loop it started
+        on; running the coroutine on any other loop (even a legitimately
+        "new" one from asyncio.run()) fails with a cross-loop binding
+        error, which is exactly what happened before this fix.
         """
+        if _bot_event_loop is None:
+            raise ConfigError("Telegram bot event loop not captured yet - has start_bot() finished initializing?")
+
         coro = application.bot.send_message(
             chat_id=settings.telegram_allowed_user_id,
             text=text,
             parse_mode="Markdown",
         )
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            loop = None
-
-        if loop is not None and loop.is_running():
-            future = asyncio.run_coroutine_threadsafe(coro, loop)
-            future.result(timeout=10)
-        else:
-            asyncio.run(coro)
+        future = asyncio.run_coroutine_threadsafe(coro, _bot_event_loop)
+        future.result(timeout=10)
