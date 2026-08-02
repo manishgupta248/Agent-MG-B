@@ -32,6 +32,8 @@ from telegram.ext import Application, ApplicationBuilder, CommandHandler, Contex
 from app.core.config import settings
 from app.core.exceptions import ConfigError
 from app.core.notifications import NotificationChannel
+from app.core.telegram_approval import handle_approval_callback
+from telegram.ext import CallbackQueryHandler
 
 # Module-level reference to the running Application, set by start_bot().
 # TelegramNotificationChannel needs this to send via the SAME bot
@@ -87,6 +89,7 @@ def build_application() -> Application:
         .build()
     )
     application.add_handler(CommandHandler("start", _start_command))
+    application.add_handler(CallbackQueryHandler(handle_approval_callback))
     return application
 
 
