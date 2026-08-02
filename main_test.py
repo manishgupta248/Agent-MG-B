@@ -410,6 +410,61 @@ def test_notification_event_wiring():
 
     notification_manager._channels.remove(channel)
     print("[M5-S2] Notification event wiring OK - approval_requested + tool.failed notify, tool.succeeded does not")
+def test_excel_read_tools():
+    """M7-S1: create a small real .xlsx, then confirm list/read/search
+    all work correctly via call_tool, using streaming read-only mode."""
+    import openpyxl
+    from pathlib import Path
+    from app.core.call_tool import call_tool
+
+    test_file = Path("data") / "_test_excel_m7s1.xlsx"
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Sheet1"
+    ws.append(["Name", "Score"])
+    ws.append(["Alice", 90])
+    ws.append(["Bob", 85])
+    wb.save(test_file)
+
+    try:
+        list_result = call_tool("excel_list_sheets", {"file_path": str(test_file)})
+        assert list_result.success is True
+        assert any(s["name"] == "Sheet1" for s in list_result.data)
+
+        read_result = call_tool("excel_read_sheet", {"file_path": str(test_file)})
+        assert read_result.success is True
+        assert read_result.data["rows"][0] == ["Name", "Score"]
+        assert read_result.data["rows"][1] == ["Alice", 90]
+
+        search_result = call_tool("excel_search_in_sheet", {"file_path": str(test_file), "query": "alice"})
+        assert search_result.success is True
+        assert len(search_result.data["matches"]) == 1
+        assert search_result.data["matches"][0]["value"] == "Alice"
+
+        print("[M7-S1] Excel read tools OK - list/read/search all correct")
+    finally:
+        test_file.unlink(missing_ok=True)
+
+
+def test_excel_invalid_file():
+    """M7-S1: confirm a missing file and a wrong extension both raise
+    ValidationError cleanly, not a cryptic openpyxl error."""
+    from app.core.call_tool import call_tool
+    from app.core.exceptions import ValidationError
+
+    try:
+        call_tool("excel_list_sheets", {"file_path": "does_not_exist.xlsx"})
+        assert False, "should have raised for a missing file"
+    except ValidationError:
+        pass
+
+    try:
+        call_tool("excel_list_sheets", {"file_path": "main.py"})
+        assert False, "should have raised for a non-Excel file"
+    except ValidationError:
+        pass
+
+    print("[M7-S1] Excel invalid-file handling OK")
 
 def main():
     print("[M1-S1] Scaffold check starting...")
@@ -472,6 +527,11 @@ def main():
     print("\n[M5-S2] Notification event wiring checks starting...")
     test_notification_event_wiring()
     print("[M5-S2] Notification event wiring checks complete.")
+
+    print("\n[M7-S1] Excel read tools checks starting...")
+    test_excel_read_tools()
+    test_excel_invalid_file()
+    print("[M7-S1] Excel read tools checks complete.")
 
 if __name__ == "__main__":
     main()

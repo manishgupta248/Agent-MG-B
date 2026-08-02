@@ -137,3 +137,8 @@ Build TelegramApprovalHandler — a real ApprovalHandler (from M2) backed by Tel
 
 ## M6 — Step 3: Wire main.py + Testable Pytest Suite + Milestone Wrap-up
 Replace main.py's NotImplementedError placeholder with the real agent loop — register both notification channels (console + Telegram) and call start_bot() as the final, blocking step. Then build a pytest suite for everything in M6 that can be tested without a live Telegram connection (the callback-resolution logic and timeout behavior, using a real background-thread event loop but a fake Application/bot.send_message — no actual network calls). Close out with the tag.
+
+# ======================================================================
+
+## M7 — Step 1: Excel Read Tools (streaming)
+Build plugins/excel/ — tools to list sheets, read a range/whole sheet, and search for values in an Excel workbook, using openpyxl in streaming read-only mode (read_only=True) per the 8GB RAM discipline in Section 2. This step is read-only tools only (PermissionLevel.READ — no approval gate needed); write/modify tools (Step 2) come next since they're higher-risk and deserve their own focused step.
