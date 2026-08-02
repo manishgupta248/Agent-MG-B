@@ -18,6 +18,8 @@ from app.core.logging_setup import configure_logging
 from app.core.database import init_db
 from app.registry.discovery import discover_tools
 from app.core.knowledge_base import init_knowledge_base
+from app.core.notifications import notification_manager, ConsoleNotificationChannel
+from app.core.notification_wiring import wire_notifications_to_events
 
 
 def bootstrap() -> None:
@@ -30,6 +32,9 @@ def bootstrap() -> None:
 
     tool_count = discover_tools()
     logger.info(f"Boot sequence complete - {tool_count} tool(s) available")
+
+    notification_manager.register_channel(ConsoleNotificationChannel())
+    wire_notifications_to_events()
 
 
 def main() -> None:

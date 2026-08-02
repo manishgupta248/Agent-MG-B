@@ -124,3 +124,6 @@ Expose the knowledge base to the agent itself via real @tool-decorated plugins i
 
 ## M5 — Step 1: Notification Framework Core
 Build app/core/notifications.py: the channel-abstracted notification system from Section 4, item 5. This step defines the NotificationChannel interface, a NotificationManager that can hold and broadcast to multiple channels at once, and one concrete starter implementation — ConsoleNotificationChannel.
+
+## M5 — Step 2: Wire Notifications to Events + Milestone Wrap-up
+Connect the Notification Framework to the Event Bus: subscribe notification-sending handlers to tool.approval_requested and tool.failed, register the console channel in main.py's boot sequence, then close out M5 with a pytest suite and the v0.5-m5-notifications tag.

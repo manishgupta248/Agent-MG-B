@@ -380,6 +380,37 @@ def test_notification_manager_broadcasts_to_all_channels():
     assert len(sent_log) == 1
     print("[M5-S1] NotificationManager OK - broadcast to multiple channels, isolated the broken one")
 
+def test_notification_event_wiring():
+    """M5-S2: confirm approval_requested and tool.failed events trigger
+    notifications, and tool.succeeded correctly does NOT."""
+    from app.core.notifications import notification_manager, NotificationChannel
+    from app.core.notification_wiring import wire_notifications_to_events
+    from app.core.event_bus import publish
+
+    received = []
+
+    class TestChannel(NotificationChannel):
+        @property
+        def channel_name(self) -> str:
+            return "test"
+
+        def send(self, title, message, metadata=None) -> bool:
+            received.append((title, message))
+            return True
+
+    channel = TestChannel()
+    notification_manager.register_channel(channel)
+    wire_notifications_to_events()
+
+    publish("tool.approval_requested", {"tool_name": "x", "permission": "modify"})
+    publish("tool.failed", {"tool_name": "y", "error": "boom"})
+    publish("tool.succeeded", {"tool_name": "z", "result": {}})
+
+    assert len(received) == 2, "only approval_requested and tool.failed should have triggered notifications"
+
+    notification_manager._channels.remove(channel)
+    print("[M5-S2] Notification event wiring OK - approval_requested + tool.failed notify, tool.succeeded does not")
+
 def main():
     print("[M1-S1] Scaffold check starting...")
     print("[M1-S1] Scaffold check complete.")
@@ -437,6 +468,10 @@ def main():
     test_notification_channel_console()
     test_notification_manager_broadcasts_to_all_channels()
     print("[M5-S1] Notification framework checks complete.")
+
+    print("\n[M5-S2] Notification event wiring checks starting...")
+    test_notification_event_wiring()
+    print("[M5-S2] Notification event wiring checks complete.")
 
 if __name__ == "__main__":
     main()
