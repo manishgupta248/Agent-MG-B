@@ -2,24 +2,23 @@
 Real application entry point for the Personal AI Agent.
 
 Boot sequence (order matters):
-  1. configure_logging() - so every subsequent step's errors are captured
-  2. init_db()            - schema must exist before anything queries it
-  3. discover_tools()     - populates the tool registry from plugins/
-
-Each step is allowed to fail loudly and halt startup - no silent
-partial-boot state. As new subsystems come online (Job Queue in M10,
-Scheduler in M11, the Telegram bot loop in M6), they get added to this
-sequence in dependency order, not bolted on arbitrarily.
+  1. configure_logging()
+  2. init_db()
+  3. init_knowledge_base()
+  4. discover_tools()
+  5. register notification channels + wire to event bus
+  6. start_bot() - blocking; the actual agent loop (M6)
 """
 
 from loguru import logger
 
 from app.core.logging_setup import configure_logging
 from app.core.database import init_db
-from app.registry.discovery import discover_tools
 from app.core.knowledge_base import init_knowledge_base
+from app.registry.discovery import discover_tools
 from app.core.notifications import notification_manager, ConsoleNotificationChannel
 from app.core.notification_wiring import wire_notifications_to_events
+from app.core.telegram_bot import start_bot, TelegramNotificationChannel
 
 
 def bootstrap() -> None:
@@ -34,15 +33,14 @@ def bootstrap() -> None:
     logger.info(f"Boot sequence complete - {tool_count} tool(s) available")
 
     notification_manager.register_channel(ConsoleNotificationChannel())
+    notification_manager.register_channel(TelegramNotificationChannel())
     wire_notifications_to_events()
 
 
 def main() -> None:
     bootstrap()
-    # Real agent loop (Telegram bot, etc.) is not implemented yet - starts at M6.
-    raise NotImplementedError(
-        "Boot sequence complete, but no agent loop exists yet - see M6 (Telegram integration)."
-    )
+    logger.info("Boot sequence complete - starting Telegram bot as the main agent loop.")
+    start_bot()  # blocking - this is the real agent loop from here on
 
 
 if __name__ == "__main__":

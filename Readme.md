@@ -127,3 +127,13 @@ Build app/core/notifications.py: the channel-abstracted notification system from
 
 ## M5 — Step 2: Wire Notifications to Events + Milestone Wrap-up
 Connect the Notification Framework to the Event Bus: subscribe notification-sending handlers to tool.approval_requested and tool.failed, register the console channel in main.py's boot sequence, then close out M5 with a pytest suite and the v0.5-m5-notifications tag.
+
+# ==========================================================================
+## M6 — Step 1: Telegram Bot Scaffolding + Notification Channel
+Get a real, running Telegram bot connected to your actual bot token, restricted to your own Telegram user ID, with concurrent_updates=True set from the very first version (per Section 5 — never add this as an afterthought once a deadlock has already happened). This step delivers: the Application builder wrapper, a /start command handler, and TelegramNotificationChannel — the second real NotificationChannel implementation, proving the abstraction from M5 genuinely works across two very different delivery mechanisms.
+
+## M6 — Step 2: Telegram Approval Handler (inline buttons)
+Build TelegramApprovalHandler — a real ApprovalHandler (from M2) backed by Telegram inline-keyboard buttons. A MODIFY/DELETE/ADMIN tool call routed through this handler sends you an "Approve / Deny" message in Telegram; tapping a button resolves a threading.Event that the (blocking, synchronous) request_approval() call is waiting on.
+
+## M6 — Step 3: Wire main.py + Testable Pytest Suite + Milestone Wrap-up
+Replace main.py's NotImplementedError placeholder with the real agent loop — register both notification channels (console + Telegram) and call start_bot() as the final, blocking step. Then build a pytest suite for everything in M6 that can be tested without a live Telegram connection (the callback-resolution logic and timeout behavior, using a real background-thread event loop but a fake Application/bot.send_message — no actual network calls). Close out with the tag.
