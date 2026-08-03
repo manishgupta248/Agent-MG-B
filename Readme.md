@@ -142,3 +142,9 @@ Replace main.py's NotImplementedError placeholder with the real agent loop — r
 
 ## M7 — Step 1: Excel Read Tools (streaming)
 Build plugins/excel/ — tools to list sheets, read a range/whole sheet, and search for values in an Excel workbook, using openpyxl in streaming read-only mode (read_only=True) per the 8GB RAM discipline in Section 2. This step is read-only tools only (PermissionLevel.READ — no approval gate needed); write/modify tools (Step 2) come next since they're higher-risk and deserve their own focused step.
+
+## M7 — Step 2: Excel Write Tools
+Build plugins/excel/write_tools.py — excel_write_cell, excel_append_row, excel_create_sheet. All MODIFY permission (approval-gated). These need a normal (non-read-only) workbook load, since read_only=True workbooks are strictly read-only in openpyxl and cannot be saved. The critical design concern here: a failed write must never corrupt or partially-overwrite the original file.
+# ======================================================================
+
+## 

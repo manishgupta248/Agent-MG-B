@@ -468,6 +468,53 @@ def test_excel_invalid_file():
 
     print("[M7-S1] Excel invalid-file handling OK")
 
+def test_excel_write_tools():
+    """M7-S2: confirm write_cell/append_row/create_sheet all persist to
+    disk correctly and are approval-gated."""
+    import openpyxl
+    from pathlib import Path
+    from app.core.call_tool import call_tool
+    from app.core.approval import AutoApproveHandler
+    from app.core.exceptions import ToolExecutionError
+
+    test_file = Path("data") / "_test_excel_m7s2.xlsx"
+    wb = openpyxl.Workbook()
+    wb.active.title = "Data"
+    wb.active.append(["Name", "Score"])
+    wb.save(test_file)
+
+    try:
+        try:
+            call_tool("excel_write_cell", {"file_path": str(test_file), "cell": "C1", "value": "x"})
+            assert False, "should require approval"
+        except ToolExecutionError:
+            pass
+
+        call_tool(
+            "excel_write_cell",
+            {"file_path": str(test_file), "cell": "C1", "value": "Grade"},
+            approval_handler=AutoApproveHandler(),
+        )
+        call_tool(
+            "excel_append_row",
+            {"file_path": str(test_file), "row_values": ["Carol", 95]},
+            approval_handler=AutoApproveHandler(),
+        )
+        call_tool(
+            "excel_create_sheet",
+            {"file_path": str(test_file), "sheet_name": "Notes"},
+            approval_handler=AutoApproveHandler(),
+        )
+
+        wb_check = openpyxl.load_workbook(test_file)
+        assert wb_check.active["C1"].value == "Grade"
+        assert list(wb_check.active.iter_rows(values_only=True))[-1][:2] == ("Carol", 95)
+        assert "Notes" in wb_check.sheetnames
+
+        print("[M7-S2] Excel write tools OK - write_cell/append_row/create_sheet all persisted correctly")
+    finally:
+        test_file.unlink(missing_ok=True)
+
 def main():
     print("[M1-S1] Scaffold check starting...")
     print("[M1-S1] Scaffold check complete.")
@@ -534,6 +581,10 @@ def main():
     test_excel_read_tools()
     test_excel_invalid_file()
     print("[M7-S1] Excel read tools checks complete.")
+
+    print("\n[M7-S2] Excel write tools checks starting...")
+    test_excel_write_tools()
+    print("[M7-S2] Excel write tools checks complete.")
 
 if __name__ == "__main__":
     main()
