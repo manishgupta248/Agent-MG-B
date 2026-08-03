@@ -30,3 +30,6 @@ langgraph>=0.1
 # --- Testing (milestone-only, not per-step) ---
 pytest>=8.2
 pytest-asyncio>=0.23
+
+# --- Testing utilities (not used in production code paths) ---
+reportlab>=4.2

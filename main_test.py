@@ -515,6 +515,42 @@ def test_excel_write_tools():
     finally:
         test_file.unlink(missing_ok=True)
 
+def test_pdf_read_tools():
+    """M8-S1: create a small real PDF, then confirm metadata/extract/search
+    all work correctly via call_tool."""
+    from pathlib import Path
+    from pypdf import PdfWriter
+    from reportlab.pdfgen import canvas
+    from app.core.call_tool import call_tool
+
+    test_file = Path("data") / "_test_pdf_m8s1.pdf"
+
+    # Build a real 2-page PDF with actual extractable text.
+    c = canvas.Canvas(str(test_file))
+    c.drawString(100, 750, "Page one contains the word banana somewhere.")
+    c.showPage()
+    c.drawString(100, 750, "Page two talks about apples instead.")
+    c.showPage()
+    c.save()
+
+    try:
+        meta_result = call_tool("pdf_get_metadata", {"file_path": str(test_file)})
+        assert meta_result.success is True
+        assert meta_result.data["page_count"] == 2
+
+        extract_result = call_tool("pdf_extract_text", {"file_path": str(test_file), "start_page": 1, "end_page": 2})
+        assert extract_result.success is True
+        assert "banana" in extract_result.data["pages"][0]["text"].lower()
+        assert "apples" in extract_result.data["pages"][1]["text"].lower()
+
+        search_result = call_tool("pdf_search_text", {"file_path": str(test_file), "query": "banana"})
+        assert search_result.success is True
+        assert search_result.data["matches"][0]["page"] == 1
+
+        print("[M8-S1] PDF read tools OK - metadata/extract/search all correct")
+    finally:
+        test_file.unlink(missing_ok=True)
+
 def main():
     print("[M1-S1] Scaffold check starting...")
     print("[M1-S1] Scaffold check complete.")
@@ -585,6 +621,10 @@ def main():
     print("\n[M7-S2] Excel write tools checks starting...")
     test_excel_write_tools()
     print("[M7-S2] Excel write tools checks complete.")
+
+    print("\n[M8-S1] PDF read tools checks starting...")
+    test_pdf_read_tools()
+    print("[M8-S1] PDF read tools checks complete.")
 
 if __name__ == "__main__":
     main()

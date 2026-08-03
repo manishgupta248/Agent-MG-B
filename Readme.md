@@ -147,4 +147,5 @@ Build plugins/excel/ — tools to list sheets, read a range/whole sheet, and sea
 Build plugins/excel/write_tools.py — excel_write_cell, excel_append_row, excel_create_sheet. All MODIFY permission (approval-gated). These need a normal (non-read-only) workbook load, since read_only=True workbooks are strictly read-only in openpyxl and cannot be saved. The critical design concern here: a failed write must never corrupt or partially-overwrite the original file.
 # ======================================================================
 
-## 
+## M8 — Step 1: PDF Read Tools
+Build plugins/pdf/ — pdf_get_metadata, pdf_extract_text, pdf_search_text, using pypdf for lightweight metadata and pdfplumber for higher-quality, layout-aware text extraction. All READ permission. This step establishes the PDF equivalent of Excel's "streaming" discipline: since PDFs have no native read-only/lazy-loading mode like openpyxl, the RAM discipline here is page-ranged processing — never extracting the full document into memory at once when only a subset is needed.
