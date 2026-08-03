@@ -12,11 +12,10 @@ from pydantic import BaseModel, Field
 from app.models.tool_result import ToolResult
 from app.registry.tool_contract import PermissionLevel, tool
 from plugins.excel._shared import open_workbook_readonly
-
+from openpyxl.utils import get_column_letter
 
 class ListSheetsInput(BaseModel):
     file_path: str = Field(description="Path to the .xlsx/.xlsm file")
-
 
 @tool(
     name="excel_list_sheets",
@@ -27,10 +26,17 @@ class ListSheetsInput(BaseModel):
 def excel_list_sheets(input_data: ListSheetsInput) -> ToolResult:
     wb = open_workbook_readonly(input_data.file_path)
     try:
-        sheets = [
-            {"name": name, "dimensions": wb[name].dimensions}
-            for name in wb.sheetnames
-        ]
+        sheets = []
+        for name in wb.sheetnames:
+            ws = wb[name]
+            # .dimensions isn't available on ReadOnlyWorksheet (read_only=True
+            # mode doesn't eagerly parse the full used range) - compute the
+            # same "A1:F10"-style string manually from max_row/max_column instead.
+            if ws.max_row and ws.max_column:
+                dimensions = f"A1:{get_column_letter(ws.max_column)}{ws.max_row}"
+            else:
+                dimensions = "empty"
+            sheets.append({"name": name, "dimensions": dimensions})
         return ToolResult(success=True, data=sheets)
     finally:
         wb.close()  # important in read_only mode - releases the underlying file handle

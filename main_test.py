@@ -448,20 +448,22 @@ def test_excel_read_tools():
 
 def test_excel_invalid_file():
     """M7-S1: confirm a missing file and a wrong extension both raise
-    ValidationError cleanly, not a cryptic openpyxl error."""
+    ToolExecutionError cleanly (call_tool wraps any exception raised
+    DURING tool execution as ToolExecutionError - only Pydantic's own
+    pre-execution input-schema validation raises bare ValidationError)."""
     from app.core.call_tool import call_tool
-    from app.core.exceptions import ValidationError
+    from app.core.exceptions import ToolExecutionError
 
     try:
         call_tool("excel_list_sheets", {"file_path": "does_not_exist.xlsx"})
         assert False, "should have raised for a missing file"
-    except ValidationError:
+    except ToolExecutionError:
         pass
 
     try:
         call_tool("excel_list_sheets", {"file_path": "main.py"})
         assert False, "should have raised for a non-Excel file"
-    except ValidationError:
+    except ToolExecutionError:
         pass
 
     print("[M7-S1] Excel invalid-file handling OK")
