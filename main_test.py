@@ -551,6 +551,53 @@ def test_pdf_read_tools():
     finally:
         test_file.unlink(missing_ok=True)
 
+def test_word_tools():
+    """M8-S2: confirm Word read/write tools all work correctly via call_tool."""
+    from pathlib import Path
+    from docx import Document
+    from app.core.call_tool import call_tool
+    from app.core.approval import AutoApproveHandler
+    from app.core.exceptions import ToolExecutionError
+
+    new_file = Path("data") / "_test_word_m8s2.docx"
+    new_file.unlink(missing_ok=True)
+
+    try:
+        try:
+            call_tool("docx_create_document", {"file_path": str(new_file), "initial_text": "First para"})
+            assert False, "should require approval"
+        except ToolExecutionError:
+            pass
+
+        call_tool(
+            "docx_create_document",
+            {"file_path": str(new_file), "initial_text": "First para about bananas"},
+            approval_handler=AutoApproveHandler(),
+        )
+
+        meta_result = call_tool("docx_get_metadata", {"file_path": str(new_file)})
+        assert meta_result.data["paragraph_count"] == 1
+
+        call_tool(
+            "docx_append_paragraph",
+            {"file_path": str(new_file), "text": "Second para"},
+            approval_handler=AutoApproveHandler(),
+        )
+
+        call_tool(
+            "docx_find_and_replace",
+            {"file_path": str(new_file), "find_text": "bananas", "replace_text": "oranges"},
+            approval_handler=AutoApproveHandler(),
+        )
+
+        extract_result = call_tool("docx_extract_text", {"file_path": str(new_file)})
+        assert "oranges" in extract_result.data["paragraphs"][0]
+        assert extract_result.data["paragraphs"][1] == "Second para"
+
+        print("[M8-S2] Word tools OK - create/read/append/find_and_replace all correct")
+    finally:
+        new_file.unlink(missing_ok=True)
+
 def main():
     print("[M1-S1] Scaffold check starting...")
     print("[M1-S1] Scaffold check complete.")
@@ -625,6 +672,10 @@ def main():
     print("\n[M8-S1] PDF read tools checks starting...")
     test_pdf_read_tools()
     print("[M8-S1] PDF read tools checks complete.")
+
+    print("\n[M8-S2] Word tools checks starting...")
+    test_word_tools()
+    print("[M8-S2] Word tools checks complete.")
 
 if __name__ == "__main__":
     main()

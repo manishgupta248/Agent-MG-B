@@ -149,3 +149,7 @@ Build plugins/excel/write_tools.py — excel_write_cell, excel_append_row, excel
 
 ## M8 — Step 1: PDF Read Tools
 Build plugins/pdf/ — pdf_get_metadata, pdf_extract_text, pdf_search_text, using pypdf for lightweight metadata and pdfplumber for higher-quality, layout-aware text extraction. All READ permission. This step establishes the PDF equivalent of Excel's "streaming" discipline: since PDFs have no native read-only/lazy-loading mode like openpyxl, the RAM discipline here is page-ranged processing — never extracting the full document into memory at once when only a subset is needed.
+
+## M8 — Step 2: Word Tools (python-docx)
+
+Build plugins/word/ — read tools (docx_extract_text, docx_get_metadata) and write tools (docx_create_document, docx_append_paragraph, docx_find_and_replace), using python-docx. Read tools are READ permission; write tools are MODIFY (and, like Excel, use the same atomic temp-file-then-replace save pattern for any operation on an existing file).
