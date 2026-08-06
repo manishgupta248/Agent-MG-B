@@ -19,6 +19,7 @@ from app.registry.discovery import discover_tools
 from app.core.notifications import notification_manager, ConsoleNotificationChannel
 from app.core.notification_wiring import wire_notifications_to_events
 from app.core.telegram_bot import start_bot, TelegramNotificationChannel
+from app.core.job_queue import init_job_queue
 
 
 def bootstrap() -> None:
@@ -28,6 +29,7 @@ def bootstrap() -> None:
 
     init_db()
     init_knowledge_base()
+    init_job_queue()
 
     tool_count = discover_tools()
     logger.info(f"Boot sequence complete - {tool_count} tool(s) available")
