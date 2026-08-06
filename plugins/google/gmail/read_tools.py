@@ -4,6 +4,7 @@ Gmail READ tools - search and read messages. READ permission.
 
 import base64
 
+from bs4 import BeautifulSoup
 from pydantic import BaseModel, Field
 
 from app.core.exceptions import ValidationError
@@ -55,19 +56,46 @@ class ReadMessageInput(BaseModel):
     message_id: str = Field(description="Gmail message id, from gmail_search_messages results")
 
 
-def _extract_plain_text(payload) -> str:
+def _find_part_by_mime(payload, mime_type: str) -> str:
     """
-    Walks a Gmail message's MIME payload to find and decode the
-    text/plain part. Gmail messages are multipart MIME - callers of
-    gmail_read_message shouldn't need to know MIME parsing themselves.
+    Recursively walks a Gmail MIME payload looking for the first part
+    matching mime_type, decoding its base64url body if found. Returns
+    empty string if no matching part exists anywhere in the tree -
+    caller decides what to do about that (see _extract_body_text).
     """
-    if payload.get("mimeType") == "text/plain" and "data" in payload.get("body", {}):
+    if payload.get("mimeType") == mime_type and "data" in payload.get("body", {}):
         return base64.urlsafe_b64decode(payload["body"]["data"]).decode("utf-8", errors="replace")
 
     for part in payload.get("parts", []):
-        text = _extract_plain_text(part)
+        text = _find_part_by_mime(part, mime_type)
         if text:
             return text
+
+    return ""
+
+
+def _extract_body_text(payload) -> str:
+    """
+    Extracts a readable body from a Gmail message's MIME payload.
+    Prefers text/plain. Falls back to text/html stripped to plain text
+    via BeautifulSoup, since many senders (marketing/newsletter emails
+    especially) send HTML-only with no text/plain alternative at all -
+    without this fallback, gmail_read_message silently "succeeds" with
+    an empty body on such messages.
+    """
+    plain = _find_part_by_mime(payload, "text/plain")
+    if plain:
+        return plain
+
+    html_body = _find_part_by_mime(payload, "text/html")
+    if html_body:
+        soup = BeautifulSoup(html_body, "html.parser")
+        # separator="\n" preserves some paragraph/line structure instead
+        # of collapsing the whole email into one run-on line
+        text = soup.get_text(separator="\n")
+        # collapse runs of blank lines left behind by stripped tags
+        lines = [line.strip() for line in text.splitlines()]
+        return "\n".join(line for line in lines if line)
 
     return ""
 
@@ -88,7 +116,7 @@ def gmail_read_message(input_data: ReadMessageInput) -> ToolResult:
         raise ValidationError(f"Failed to read Gmail message '{input_data.message_id}': {e}") from e
 
     headers = {h["name"]: h["value"] for h in msg["payload"]["headers"]}
-    body_text = _extract_plain_text(msg["payload"])
+    body_text = _extract_body_text(msg["payload"])
 
     return ToolResult(success=True, data={
         "id": msg["id"],

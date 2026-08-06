@@ -32,8 +32,8 @@ def gmail_send_message(input_data: SendMessageInput) -> ToolResult:
     service = get_gmail_service()
 
     message = MIMEText(input_data.body)
-    message["to"] = input_data.to
-    message["subject"] = input_data.subject
+    message["To"] = input_data.to
+    message["Subject"] = input_data.subject
     raw = base64.urlsafe_b64encode(message.as_bytes()).decode("utf-8")
 
     try:
