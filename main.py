@@ -20,6 +20,7 @@ from app.core.notifications import notification_manager, ConsoleNotificationChan
 from app.core.notification_wiring import wire_notifications_to_events
 from app.core.telegram_bot import start_bot, TelegramNotificationChannel
 from app.core.job_queue import init_job_queue
+from app.core.job_worker import start_background_worker
 
 
 def bootstrap() -> None:
@@ -38,7 +39,8 @@ def bootstrap() -> None:
     notification_manager.register_channel(TelegramNotificationChannel())
     wire_notifications_to_events()
 
-
+    start_background_worker()
+    
 def main() -> None:
     bootstrap()
     logger.info("Boot sequence complete - starting Telegram bot as the main agent loop.")
