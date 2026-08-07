@@ -21,6 +21,7 @@ from app.core.notification_wiring import wire_notifications_to_events
 from app.core.telegram_bot import start_bot, TelegramNotificationChannel
 from app.core.job_queue import init_job_queue
 from app.core.job_worker import start_background_worker
+from app.core.scheduler import init_scheduler
 
 
 def bootstrap() -> None:
@@ -31,6 +32,7 @@ def bootstrap() -> None:
     init_db()
     init_knowledge_base()
     init_job_queue()
+    init_scheduler()
 
     tool_count = discover_tools()
     logger.info(f"Boot sequence complete - {tool_count} tool(s) available")
