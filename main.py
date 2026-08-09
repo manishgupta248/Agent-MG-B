@@ -22,6 +22,9 @@ from app.core.telegram_bot import start_bot, TelegramNotificationChannel
 from app.core.job_queue import init_job_queue
 from app.core.job_worker import start_background_worker
 from app.core.scheduler import init_scheduler
+from app.core.scheduler_trigger import start_scheduler_polling
+from app.core.workflow_templates import init_workflow_templates
+from app.core.workflow_execution import init_workflow_execution
 
 
 def bootstrap() -> None:
@@ -33,15 +36,17 @@ def bootstrap() -> None:
     init_knowledge_base()
     init_job_queue()
     init_scheduler()
+    init_workflow_templates()
+    init_workflow_execution()
+    wire_notifications_to_events()
+    start_background_worker()
+    start_scheduler_polling()
 
     tool_count = discover_tools()
     logger.info(f"Boot sequence complete - {tool_count} tool(s) available")
 
     notification_manager.register_channel(ConsoleNotificationChannel())
     notification_manager.register_channel(TelegramNotificationChannel())
-    wire_notifications_to_events()
-
-    start_background_worker()
     
 def main() -> None:
     bootstrap()
