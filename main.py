@@ -26,6 +26,7 @@ from app.core.scheduler_trigger import start_scheduler_polling
 from app.core.workflow_templates import init_workflow_templates
 from app.core.workflow_execution import init_workflow_execution
 from app.registry.intent_registry import validate_patterns
+from app.registry.fuzzy_intent import validate_fuzzy_triggers
 
 
 def bootstrap() -> None:
@@ -47,6 +48,7 @@ def bootstrap() -> None:
     logger.info(f"Boot sequence complete - {tool_count} tool(s) available")
 
     validate_patterns()
+    validate_fuzzy_triggers()
 
     notification_manager.register_channel(ConsoleNotificationChannel())
     notification_manager.register_channel(TelegramNotificationChannel())

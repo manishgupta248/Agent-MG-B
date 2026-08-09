@@ -11,6 +11,7 @@ from app.models.tool_result import ToolResult
 from app.registry.tool_contract import PermissionLevel, tool
 from plugins.google.calendar._shared import get_calendar_service
 from app.registry.intent_registry import intent_pattern
+from app.registry.fuzzy_intent import fuzzy_trigger
 
 
 class ListEventsInput(BaseModel):
@@ -32,6 +33,12 @@ class ListEventsInput(BaseModel):
     pattern=r"what'?s on my calendar|show my calendar|list (?:my )?calendar events",
     group_mapping={},
 )
+@fuzzy_trigger(
+    tool_name="calendar_list_events",
+    phrases=["show my schedule", "what's on my agenda", "do I have any events coming up"],
+)
+
+
 def calendar_list_events(input_data: ListEventsInput) -> ToolResult:
     service = get_calendar_service()
 
