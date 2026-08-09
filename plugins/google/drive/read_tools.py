@@ -16,6 +16,7 @@ from plugins.google.drive._shared import (
     EXPORTABLE_GOOGLE_TYPES,
     DIRECT_TEXT_MIME_PREFIXES,
 )
+from app.registry.intent_registry import intent_pattern
 
 
 class SearchFilesInput(BaseModel):
@@ -33,6 +34,11 @@ class SearchFilesInput(BaseModel):
     description="Search Google Drive using native Drive query syntax, returning file metadata (id, name, mimeType, modifiedTime, size).",
     permission=PermissionLevel.READ,
     input_schema=SearchFilesInput,
+)
+@intent_pattern(
+    tool_name="drive_search_files",
+    pattern=r"search (?:my )?drive for (?P<q>.+)",
+    group_mapping={"q": "query"},
 )
 def drive_search_files(input_data: SearchFilesInput) -> ToolResult:
     service = get_drive_service()

@@ -10,6 +10,7 @@ from app.core.exceptions import ValidationError
 from app.models.tool_result import ToolResult
 from app.registry.tool_contract import PermissionLevel, tool
 from plugins.google.calendar._shared import get_calendar_service
+from app.registry.intent_registry import intent_pattern
 
 
 class ListEventsInput(BaseModel):
@@ -25,6 +26,11 @@ class ListEventsInput(BaseModel):
     description="List events on a Google Calendar within a time range, optionally filtered by free-text search. Defaults to the next 7 days on the primary calendar if no range given.",
     permission=PermissionLevel.READ,
     input_schema=ListEventsInput,
+)
+@intent_pattern(
+    tool_name="calendar_list_events",
+    pattern=r"what'?s on my calendar|show my calendar|list (?:my )?calendar events",
+    group_mapping={},
 )
 def calendar_list_events(input_data: ListEventsInput) -> ToolResult:
     service = get_calendar_service()

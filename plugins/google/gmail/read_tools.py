@@ -11,6 +11,7 @@ from app.core.exceptions import ValidationError
 from app.models.tool_result import ToolResult
 from app.registry.tool_contract import PermissionLevel, tool
 from plugins.google.gmail._shared import get_gmail_service
+from app.registry.intent_registry import intent_pattern
 
 
 class SearchMessagesInput(BaseModel):
@@ -23,6 +24,11 @@ class SearchMessagesInput(BaseModel):
     description="Search Gmail using native Gmail query syntax (from:, subject:, is:unread, etc.), returning message summaries.",
     permission=PermissionLevel.READ,
     input_schema=SearchMessagesInput,
+)
+@intent_pattern(
+    tool_name="gmail_search_messages",
+    pattern=r"search (?:my )?(?:gmail|email|inbox) for (?P<q>.+)",
+    group_mapping={"q": "query"},
 )
 def gmail_search_messages(input_data: SearchMessagesInput) -> ToolResult:
     service = get_gmail_service()
