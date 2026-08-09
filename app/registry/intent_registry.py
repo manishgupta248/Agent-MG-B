@@ -120,7 +120,7 @@ def validate_patterns() -> None:
     logger.info(f"Validated {len(_patterns)} intent pattern(s) across {distinct_tools} tool(s)")
 
 
-def _normalize(text: str) -> str:
+def normalize_text(text: str) -> str:
     """
     Normalizes input before matching - targets the logged lesson
     "normalize smart quotes/stray spaces from mobile input". Mobile
@@ -172,7 +172,7 @@ def resolve_intent(text: str) -> IntentResult:
         candidate - the compound-sentence safety requirement. Never
         guesses; always defers.
     """
-    normalized = _normalize(text)
+    normalized = normalize_text(text)
 
     # tool_name -> (IntentPattern, re.Match) - purely local, never
     # written back onto any shared registered object.
